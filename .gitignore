@@ -30,3 +30,7 @@ venv/
 *.log
 slurm-*.out
 wandb/
+
+# Restricted dataset - do not publish
+src/Finetuning/
+*.csv
