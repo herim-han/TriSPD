@@ -1,0 +1,32 @@
+# Large data files (GitHub limit: 100MB/file)
+train_smiles.txt
+valid_smiles.txt
+src/Pretrain/train_idx.npy
+src/Pretrain/valid_idx.npy
+*.npy
+*.lmdb
+*.tar
+*.tar.gz
+*.zip
+
+# Model checkpoints
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
+checkpoint*/
+output/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Logs / slurm
+*.log
+slurm-*.out
+wandb/
