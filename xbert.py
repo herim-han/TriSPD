@@ -459,7 +459,7 @@ class BertLayer(nn.Module):
         self.seq_len_dim = 1
         self.attention = BertAttention(config)
 
-        self.has_cross_attention = (layer_num >= config.fusion_layer)#property의num_hidden layers가 fusion_layer보다 커야함...?
+        self.has_cross_attention = (layer_num >= config.fusion_layer)
         if self.has_cross_attention:
             self.layer_num = layer_num
             self.crossattention = BertAttention(config, is_cross_attention=True)

@@ -17,9 +17,8 @@ def check_atom(smiles):
             print(f'NOT ALLOWED ATOMS: {atom.GetSymbol()} in {smiles}')
     return smiles
 
-#atom_pair_index = pickle.load(open('new_atom_pair_vocab.pkl', 'rb') )
 def get_vocab( smi ):
-    m = get_geom_rdkit( smi , mode ='precise') #type(output) = mol
+    m = get_geom_rdkit( smi , mode ='precise')
     if m is None:
         print(f'!!!!!!!!!!! Failed case for get_vocab {smi} {m}')
         return None
@@ -40,7 +39,6 @@ def get_geom_rdkit( smi , max_try=5, mode='normal'):
     while num_try < max_try:
         try:
             if mode == 'precise':
-#                print('precise mode')
                 mol = Chem.AddHs(mol)
                 params = AllChem.ETKDGv3()
                 params.useSmallRingTorsions = True
@@ -50,7 +48,7 @@ def get_geom_rdkit( smi , max_try=5, mode='normal'):
                 params.maxAttempts = 1000
                 params.randomSeed = 42
             
-                conf_ids = AllChem.EmbedMultipleConfs(mol, numConfs=25, params=params)#max_confs=25
+                conf_ids = AllChem.EmbedMultipleConfs(mol, numConfs=25, params=params)
                 if not conf_ids:
                     print('failed embedding')
                     raise RuntimeError(f"Embedding failed for {smi}")
@@ -89,7 +87,7 @@ def get_geom_rdkit( smi , max_try=5, mode='normal'):
     print(f'Failed to get geo max_try {max_try}: {smi}')
 
 def get_dist( smi ):
-    m = get_geom_rdkit( smi ) #type(output) = mol
+    m = get_geom_rdkit( smi )
     if m is None:
         return None
     dist_mat = Chem.Get3DDistanceMatrix(m)
@@ -99,7 +97,6 @@ def get_dist( smi ):
         i,j = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
         i_atom, j_atom = m.GetAtomWithIdx(i).GetSymbol(), m.GetAtomWithIdx(j).GetSymbol()
         dist = dist_mat[i,j]
-        #vocab_idx = atom_pair_index.get(f'{i_atom}-{j_atom}')
         vocab_idx = atom_pair_index.get(f'{i_atom}-{j_atom}', atom_pair_index['[UNK]']) #assign UNK when the atom-pair excluded in vocab
         vocab_list.append(vocab_idx)
         dist_list.append(dist)
@@ -148,8 +145,6 @@ if __name__ == '__main__':
     st = time.time()
     with Pool(24) as p:
         results = list(tqdm(p.map(get_vocab, enumerate(list_smi) ), total=len(list_smi)))
-#        results = list(tqdm(p.imap(get_vocab, list_smi), total=len(list_smi)))
-#        results = list(tqdm(p.imap_unordered(get_vocab, list_smi, chunksize=10), total=len(list_smi)))
     print('end of get_vocab')
     et = time.time()
     results = [item for item in results if item is not None]
@@ -157,8 +152,6 @@ if __name__ == '__main__':
     exit(-1)
     print(vocab_dict)
 
-    #for line in output:
-        #print(line)
     df = pd.DataFrame(output, columns=['atom_pair', 'dist'])
     print(df)
     print(atom_pair_dict)

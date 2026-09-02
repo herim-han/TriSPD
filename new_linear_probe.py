@@ -53,8 +53,7 @@ ALPHAS = np.logspace(-2, 6, 25)
 
 def load_variant(variant, ckpt, args, target_name, split):
     for encoder, prefix in VARIANTS[variant]:
-        fn = nef.cache_filename(encoder, ckpt, args.input, target_name, split,
-                                args.max_len, args.vocab_filename)
+        fn = nef.cache_filename(encoder, ckpt, target_name, split)
         path = os.path.join(args.cache_dir, prefix + fn)
         if os.path.exists(path):
             with np.load(path, allow_pickle=False) as z:
@@ -122,7 +121,7 @@ def main(args):
             print(f'[skip] {target_name}: {args.input}.csv has no {e} column')
             continue
 
-        # ---- reference row: animal PK columns only, no embedding ----
+        # reference row: animal PK columns only, no embedding
         ref = load_variant(args.variants[0], args.checkpoints[0], args, target_name, 'train')
         if ref is None:
             print(f'[skip] {target_name}: no cache for {args.variants[0]}')
@@ -138,7 +137,7 @@ def main(args):
                          n_train=len(y_tr), n_valid=len(y_va),
                          cv_R2=cv_r2, cv_SD=cv_sd, train_R2=tr_r2, valid_R2=va_r2, alpha=alpha))
 
-        # ---- one probe per (variant, checkpoint), plus a per-family ensemble ----
+        # one probe per (variant, checkpoint), plus a per-family ensemble
         for variant in args.variants:
             ens = {}
             for ckpt in args.checkpoints:
@@ -180,7 +179,7 @@ def main(args):
         print('nothing probed')
         return
 
-    # ---- bootstrap the benchmark valid split: CI per row, and PAIRED CIs for
+    # bootstrap the benchmark valid split: CI per row, and PAIRED CIs for
     # every difference. The valid split is small, so a bare point estimate says
     # nothing about whether a 0.02 gap is real; resampling the same molecules for
     # both members of a comparison removes the shared split noise.
@@ -209,7 +208,7 @@ def main(args):
         print(show[['variant', 'ckpt', 'valid_R2 [95% CI]', 'cv_R2', 'cv_SD', 'train_R2', 'alpha']]
               .to_string(index=False, float_format=lambda v: f'{v:7.3f}'))
 
-    # ---- paired differences on the valid split ----
+    # paired differences on the valid split
     def paired(a, b):
         d = boots[a] - boots[b]
         lo, hi = ci(d)

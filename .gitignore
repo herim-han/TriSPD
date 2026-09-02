@@ -34,3 +34,4 @@ wandb/
 # Restricted dataset - do not publish
 src/Finetuning/
 *.csv
+!test_sample_pk.csv

@@ -24,7 +24,6 @@ def calculate_property(smiles):
     for i, descriptor in enumerate(descriptor_dict):
         output.append(descriptor_dict[descriptor](mol))
     return torch.tensor(output, dtype=torch.float)
-#    return output
 
 
 if __name__ == '__main__':

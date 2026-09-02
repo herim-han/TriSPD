@@ -62,7 +62,7 @@ class ShuffledMultiLMDBDataset(Dataset):
             properties, smiles, atom_pair, dist = strip_salt(properties, smiles, atom_pair, dist)
         return properties, smiles, atom_pair, dist
 
-class ValLMDBDataset(Dataset):
+class LMDBDataset(Dataset):
     def __init__(self, val_lmdb_path):
         self.path = val_lmdb_path
         env = lmdb.open(val_lmdb_path, subdir=False, readonly=True, lock=False)

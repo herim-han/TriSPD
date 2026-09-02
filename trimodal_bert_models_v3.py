@@ -29,7 +29,7 @@ def create_unimodal_models(config, hidden_width, embed_dim, norm_eps, is_momentu
         mask_token  = nn.Parameter(torch.zeros(1,1, hidden_width))
         return encoder, mtr_head, cls_token, mask_token, proj_layer
 
-def extract_feature(model, linear_proj, queue, inputs, is_momentum=False): #default=student
+def extract_feature(model, linear_proj, queue, inputs, is_momentum=False):
     if is_momentum:
         with torch.no_grad():
             embeds = model(**inputs, return_dict=True).last_hidden_state
@@ -115,12 +115,15 @@ class SPMM(pl.LightningModule):
         "property_proj": self.property_proj,
         "text_proj": self.text_proj,
         "dist_proj": self.dist_proj,
-#        "prop_queue": self.prop_queue,
-#        "text_queue": self.text_queue,
-#        "dist_queue": self.dist_queue,
         "property_mtr": self.property_mtr_head,
         "dist_mtr": self.dist_mtr_head,
         }
+        if not no_train:
+            self.static_config.update({
+                "prop_queue": self.prop_queue,
+                "text_queue": self.text_queue,
+                "dist_queue": self.dist_queue,
+            })
         self.static_m_config = {
         "property_encoder_m": self.property_encoder_m,
         "text_encoder_m": self.text_encoder_m,
@@ -258,7 +261,6 @@ class SPMM(pl.LightningModule):
         for (key, mask, targets) in [('prop', prop_mpm_mask, property_original.clone()), ('dist', dist_mpm_mask, dist.clone())]:
             if key == 'prop':
                 kv_feature = (enriched_text, results['text']['atts'])
-#                print(f'masked pv: {enriched_text}')
             else:
                 kv_feature = (results['text']['embeds'], results['text']['atts'])
             prop_features = (dynamic_inputs[key]["inputs_embeds"], results[key]['atts'], mask, targets)
@@ -287,9 +289,6 @@ class SPMM(pl.LightningModule):
 
     @torch.no_grad()
     def _momentum_update(self):
-        '''
-        param_m = lambda * param_m + (1-lambda)*param
-        '''
         for model_pair in self.model_pairs:
             for param, param_m in zip(model_pair[0].parameters(), model_pair[1].parameters()):#student, momentum
                 param_m.data = param_m.data * self.momentum + param.data * (1. - self.momentum)
@@ -303,7 +302,7 @@ class SPMM(pl.LightningModule):
         batch_size = img_feats.shape[0]
 
         ptr = int(self.queue_ptr)
-        assert self.queue_size % batch_size == 0  # for simplicity
+        assert self.queue_size % batch_size == 0
 
         # replace the keys at ptr (dequeue and enqueue)
         self.prop_queue[:, ptr:ptr + batch_size] = img_feats.T
@@ -327,7 +326,7 @@ class SPMM(pl.LightningModule):
         optimizer = self.optimizers()
         scheduler = self.lr_schedulers()
 
-        prop, text, atom_pair, dist = train_batch #tensor (B, 53), list (B), list (B)
+        prop, text, atom_pair, dist = train_batch
         text = ['[CLS]' + text for text in text]
         text_input = self.tokenizer(text, padding='longest', truncation=True, max_length=100, return_tensors="pt").to(prop.device)
 
@@ -371,15 +370,11 @@ class SPMM(pl.LightningModule):
             alloc = torch.cuda.memory_allocated() / 1e9
             reserved = torch.cuda.memory_reserved() / 1e9
             print(f'Step {batch_idx} allocated: {alloc:.2f}GB, reserved: {reserved:.2f}GB')
-#        if batch_idx % 10 == 0:  
-#            alloc = torch.cuda.memory_allocated(0) / 1024**3
-#            print(f"Step {batch_idx}: {alloc:.4f}GB")
         if batch_idx % 50 == 0:
             torch.cuda.empty_cache()
             gc.collect()
 
     def pair_matching(self, pair1, pair2, results, sim_dict):
-        #pair1=prop , pair2=text�
         pos_pos = self.cross_attention_pair(results[pair1]['embeds'], results[pair1]['atts'], results[pair2]['embeds'], results[pair2]['atts'])
         with torch.no_grad():
             bs = results[pair1]['embeds'].size(0) #current Batch
@@ -427,7 +422,6 @@ class SPMM(pl.LightningModule):
     def mlm_prediction(self, text_feature, conditional, alpha, key):
         input_ids, labels, text_attention_mask = text_feature
         prop_embeds, prop_atts, prop_embeds_m = conditional
-        # ================= MLM: Masked Language Modeling + teacher distillation ================= # (Next Word Prediction)
         # Auto-regressive text prediction
 
         with torch.no_grad():
@@ -459,7 +453,6 @@ class SPMM(pl.LightningModule):
         return (1 - alpha) * loss_mlm + alpha * loss_distill_text
 
     def mpm_prediction(self, text_feature, prop_feature, encoder, mtr_head_model, key):
-        # properties = cls + masked prop sequence, is_decoder: autoregressive prediction (use only previous tokens)
 
         properties, prop_atts, mpm_mask, target = prop_feature
         text_embeds, text_attention_mask = text_feature
@@ -510,7 +503,7 @@ class SPMM(pl.LightningModule):
         qk_pair = torch.cat([q_pair, k_pair], dim=-1) 
         return qk_pair #cls token
 
-    def cross_attention_mlm(self, model, inputs, is_momentum=False): #default=student
+    def cross_attention_mlm(self, model, inputs, is_momentum=False):
         def forward():
             mlm_output = model(**inputs
                                )[:, :-1, :] #(B, L-1, dim)
@@ -523,7 +516,6 @@ class SPMM(pl.LightningModule):
             return forward()
 
     def contrastive_loss(self, q_feats, k_feats=None, alpha=0.5, temp=0.7, mode='intra'):
-        # from momentum model 
         q_feat, q_feat_m, q_feat_all = q_feats
         if mode == 'inter':
             k_feat, k_feat_m, k_feat_all = k_feats
@@ -607,7 +599,7 @@ class SPMM(pl.LightningModule):
                         "is_momentum": kwargs['is_momentum']
                     },
                    }
-        else:#is_momentum=True, teacher model
+        else:
             return {
                 "prop": {
                         "model": kwargs["property_encoder_m"],
@@ -643,7 +635,7 @@ class DistEmbedLayer(torch.nn.Module):
         super().__init__()
         # center, exponent for trainable parameters #grid spacing like as np.linspace(start, end, n_feat)
         self.center  = nn.Parameter(start + (end - start) / (n_feat - 1) * torch.arange(n_feat) ) # (n_feat)
-        self.exponent = nn.Parameter(2*torch.ones(n_feat)* n_feat/ (end-start) ) # exponent = alpha, Gaussian = exp(-alpha(d-dj)2)
+        self.exponent = nn.Parameter(2*torch.ones(n_feat)* n_feat/ (end-start) )
 
     def forward(self, dist) -> torch.Tensor:
         # (B, max_pair) -> (B, max_pair, n_feat) for 3D-broadcasting
