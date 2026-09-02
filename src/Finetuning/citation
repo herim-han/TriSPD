@@ -1,0 +1,11 @@
+PK data can be downloaded from:
+@article{iwata2022predicting,
+  title = {Predicting Total Drug Clearance and Volumes of Distribution Using the Machine Learning-Mediated Multimodal Method through the Imputation of Various Nonclinical Data},
+  author = {Iwata, Hiroaki and Matsuo, Tatsuru and Mamada, Hideaki and Motomura, Takahisa and Matsushita, Mayumi and Fujiwara, Takeshi and Maeda, Kazuya and Handa, Koichi},
+  journal = {J. Chem. Inf. Model.},
+  volume = {62},
+  number = {17},
+  pages = {4057--4065},
+  year = {2022},
+  doi = {10.1021/acs.jcim.2c00318}
+}

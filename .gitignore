@@ -32,6 +32,6 @@ slurm-*.out
 wandb/
 
 # Restricted dataset - do not publish
-src/Finetuning/
+src/Finetuning/src-iwata-pk.csv
 *.csv
-!test_sample_pk.csv
+!src/Finetuning/test_sample_pk.csv
