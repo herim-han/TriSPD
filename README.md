@@ -26,7 +26,7 @@ vector, and — for the 3D branch — an atom-pair list with the corresponding
 interatomic distances taken from a 3D distance matrix.
 
 ```bash
-python create_lmdb.py --input_file test_sample.txt --output_file test_sample.lmdb
+python create_lmdb.py --input_file src/Pretrain/test_sample.txt --output_file src/Pretrain/test_sample.lmdb
 ```
 
 The SMILES corpus and the checkpoints actually used in the paper
@@ -40,7 +40,7 @@ Train the trimodal model on the LMDB produced in the previous step.
 ```bash
 python SPMM_pretrain_tri.py \
     --batch_size 96 --num_workers 8 --devices 5 \
-    --input_file test_sample.lmdb
+    --input_file src/Pretrain/test_sample.lmdb
 ```
 
 ## 4. Representational analysis
@@ -50,7 +50,7 @@ rank, CKA, distance-modality coverage, and layer-wise cross-model CKA.
 
 ```bash
 python run_bivstri.py \
-    --num_samples 100 --val_lmdb test_sample.lmdb \
+    --num_samples 100 --val_lmdb src/Pretrain/test_sample.lmdb \
     --bi_ckpt  Pretrain/bi_random/bimodal_pubchem100m_96_step=216260.ckpt \
     --tri_ckpt Pretrain/tri_random/trimodal_pubchem100m_96_step=216260.ckpt
 ```
@@ -61,7 +61,7 @@ python run_bivstri.py \
 
 ```bash
 python pv_predict.py \
-    --input_file test_sample.lmdb \
+    --input_file src/Pretrain/test_sample.lmdb \
     --checkpoint Pretrain/tri_random/trimodal_pubchem100m_96_step=216260.ckpt
 ```
 
@@ -69,7 +69,7 @@ python pv_predict.py \
 
 ```bash
 python gen_smiles.py \
-    --k_list 5,10 --n_mols 1000 --test_file test_sample.txt --batch_size 512 \
+    --k_list 5,10 --n_mols 1000 --test_file src/Pretrain/test_sample.txt --batch_size 512 \
     --checkpoint Pretrain/tri_random/trimodal_pubchem100m_96_step=216260.ckpt \
     --out_csv ./gensmiles_tri.csv
 ```
@@ -89,7 +89,7 @@ one file per (checkpoint, target, split).
 python ft_extract_feature.py \
     --checkpoints Pretrain/trimodal_pubchem100m_96_step=216260.ckpt \
                   Pretrain/trimodal_pubchem100m_96_step=173008.ckpt \
-    --target_name human_CL --input test_sample_pk.csv
+    --target_name human_CL --input src/Finetuning/test_sample_pk.csv
 ```
 
 ### 6.2 Train the prediction head
@@ -98,7 +98,7 @@ Trains an endpoint predictor on the cached frozen features.
 
 ```bash
 python ft_regression.py \
-    --target_name human_CL --input test_sample_pk.csv \
+    --target_name human_CL --input src/Finetuning/test_sample_pk.csv \
     --warmup_mode gradual --num_seeds 100 \
     --checkpoints Pretrain/trimodal_pubchem100m_96_step=173008.ckpt \
                   Pretrain/trimodal_pubchem100m_96_step=216260.ckpt \
